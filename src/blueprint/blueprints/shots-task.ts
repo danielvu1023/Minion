@@ -40,7 +40,7 @@ Format the new entries to match the style of the existing data (single quotes, t
     {
       type: 'deterministic',
       name: 'Type checking',
-      command: 'cd /workspace && npx tsc --noEmit 2>&1 && echo "TYPE_CHECK_PASSED"',
+      command: 'cd /workspace && npx -p typescript tsc --noEmit 2>&1 && echo "TYPE_CHECK_PASSED"',
     },
     {
       type: 'deterministic',
@@ -50,7 +50,7 @@ Format the new entries to match the style of the existing data (single quotes, t
     {
       type: 'deterministic',
       name: 'Opening PR',
-      command: `cd /workspace && gh pr create --title "feat(shots): add ${shotNames}" --body "## New Shots\n\nAdded via Minion shots pipeline from YouTube video: ${videoUrl}\n\nShots added: ${shotNames}\n\n> Diagrams are placeholders — manual SVG refinement may be needed." 2>&1`,
+      command: `cd /workspace && gh pr create --head "$(git rev-parse --abbrev-ref HEAD)" --title "feat(shots): add ${shotNames}" --body "## New Shots\n\nAdded via Minion shots pipeline from YouTube video: ${videoUrl}\n\nShots added: ${shotNames}\n\n> Diagrams are placeholders — manual SVG refinement may be needed." 2>&1`,
     },
   ];
 }
