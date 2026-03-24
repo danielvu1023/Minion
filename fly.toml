@@ -1,20 +1,23 @@
+# fly.toml app configuration file generated for minion-bot on 2026-03-24T16:31:21Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'minion-bot'
-primary_region = 'sjc'
+primary_region = 'lax'
 
 [build]
-
-[env]
-  EXECUTION_MODE = 'shell'
-  PORT = '3000'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = 'suspend'
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  memory = '512mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 512
