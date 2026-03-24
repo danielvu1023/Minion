@@ -70,12 +70,7 @@ export class ShellProvider implements IDevboxProvider {
       { mode: 0o600 },
     );
 
-    // Authenticate gh CLI via env var instead of piping token through shell
-    execSync('gh auth login --with-token', {
-      input: githubToken,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 30000,
-    });
+    // gh CLI automatically uses GITHUB_TOKEN env var — no login needed
     this.logger.log('Shell provider configured');
   }
 
