@@ -2,6 +2,9 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { App } from '@slack/bolt';
 import { BlueprintService } from '../blueprint/blueprint.service.js';
+import { ShotsPipelineService } from '../shots/shots-pipeline.service.js';
+
+const SHOTS_ADD_REGEX = /^shots\s+add\s+"([^"]+)"/;
 
 @Injectable()
 export class SlackService implements OnModuleInit {
@@ -11,6 +14,7 @@ export class SlackService implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private blueprintService: BlueprintService,
+    private shotsPipelineService: ShotsPipelineService,
   ) {
     this.app = new App({
       token: this.configService.get<string>('SLACK_BOT_TOKEN'),
@@ -32,9 +36,13 @@ export class SlackService implements OnModuleInit {
       this.logger.log(`Received /minion command from user=${command.user_id} channel=${command.channel_id}`);
       this.logger.log(`Prompt: "${command.text}"`);
 
+      const shotsMatch = command.text.match(SHOTS_ADD_REGEX);
+
       const msg = await client.chat.postMessage({
         channel: command.channel_id,
-        text: ':robot_face: Minion starting run...',
+        text: shotsMatch
+          ? `:basketball: Minion shots pipeline starting for "${shotsMatch[1]}"...`
+          : ':robot_face: Minion starting run...',
       });
 
       const threadTs = msg.ts!;
@@ -42,35 +50,36 @@ export class SlackService implements OnModuleInit {
 
       this.logger.log(`Thread started: channel=${channelId} thread_ts=${threadTs}`);
 
+      const stepUpdateCallback = async (stepName: string, status: 'running' | 'success' | 'failed', detail?: string) => {
+        const emoji =
+          status === 'running'
+            ? ':hourglass_flowing_sand:'
+            : status === 'success'
+              ? ':white_check_mark:'
+              : ':x:';
+        let text = `${emoji} ${stepName}`;
+        if (detail) {
+          text += status === 'failed' ? `\n\`\`\`${detail}\`\`\`` : ` — ${detail}`;
+        }
+        await client.chat.postMessage({
+          channel: channelId,
+          thread_ts: threadTs,
+          text,
+        });
+      };
+
+      // Route to shots pipeline or default coding task
+      const runPromise = shotsMatch
+        ? this.shotsPipelineService.run(shotsMatch[1], channelId, threadTs, stepUpdateCallback)
+        : this.blueprintService.run(
+            { prompt: command.text, channelId, threadTs },
+            stepUpdateCallback,
+          );
+
       // fire and forget -- do NOT await
-      this.blueprintService
-        .run(
-          {
-            prompt: command.text,
-            channelId,
-            threadTs,
-          },
-          async (stepName, status, detail) => {
-            const emoji =
-              status === 'running'
-                ? ':hourglass_flowing_sand:'
-                : status === 'success'
-                  ? ':white_check_mark:'
-                  : ':x:';
-            let text = `${emoji} ${stepName}`;
-            if (status === 'failed' && detail) {
-              text += `\n\`\`\`${detail}\`\`\``;
-            }
-            await client.chat.postMessage({
-              channel: channelId,
-              thread_ts: threadTs,
-              text,
-            });
-          },
-        )
+      runPromise
         .then(async (finalOutput) => {
-          this.logger.log('Blueprint run completed successfully');
-          // Check if final output contains a PR URL
+          this.logger.log('Run completed successfully');
           const prUrlMatch = finalOutput.match(/https:\/\/github\.com\/[^\s]+\/pull\/\d+/);
           if (prUrlMatch) {
             this.logger.log(`PR URL found: ${prUrlMatch[0]}`);
@@ -88,7 +97,7 @@ export class SlackService implements OnModuleInit {
           }
         })
         .catch(async (err) => {
-          this.logger.error(`Blueprint run failed: ${(err as Error).message}`, (err as Error).stack);
+          this.logger.error(`Run failed: ${(err as Error).message}`, (err as Error).stack);
           await client.chat.postMessage({
             channel: channelId,
             thread_ts: threadTs,

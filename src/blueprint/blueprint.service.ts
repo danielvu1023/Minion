@@ -25,20 +25,22 @@ export class BlueprintService {
     request: BlueprintRunRequest,
     onStepUpdate: StepUpdateCallback,
   ): Promise<string> {
-    const steps = codingTaskBlueprint;
+    const steps = request.blueprint ?? codingTaskBlueprint;
     const runStartTime = Date.now();
 
     this.logger.log('=== Blueprint run starting ===');
     this.logger.log(`[blueprint] prompt: "${request.prompt}"`);
     this.logger.log(`[blueprint] steps: ${steps.length} total (${steps.map((s) => s.name).join(' → ')})`);
 
-    const rules = await this.contextService.loadRules();
-    this.logger.log(`[blueprint] rules loaded: ${rules.length} chars`);
-
-    // Start the devbox container
+    // Start the devbox (clone repo if remote, mount if local)
     await onStepUpdate('Setting up devbox', 'running');
-    await this.devboxService.start();
+    await this.devboxService.start(request.repoPath);
     await onStepUpdate('Setting up devbox', 'success');
+
+    // Load rules after devbox start so cloned repos are available on disk
+    const rulesPath = this.devboxService.getWorkDir();
+    const rules = await this.contextService.loadRules(rulesPath);
+    this.logger.log(`[blueprint] rules loaded: ${rules.length} chars`);
 
     // Install dependencies
     await onStepUpdate('Installing dependencies', 'running');

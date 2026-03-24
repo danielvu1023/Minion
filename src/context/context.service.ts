@@ -9,18 +9,24 @@ export class ContextService {
 
   constructor(private configService: ConfigService) {}
 
-  async loadRules(): Promise<string> {
-    const targetRepoPath = this.configService.get<string>('TARGET_REPO_PATH', '');
-    const rulesPath = path.join(targetRepoPath, 'AGENT_RULES.md');
-    this.logger.log(`[context] Loading rules from: ${rulesPath}`);
-    try {
-      const content = fs.readFileSync(rulesPath, 'utf-8');
-      this.logger.log(`[context] Loaded ${content.length} chars from AGENT_RULES.md`);
-      return content;
-    } catch {
-      this.logger.warn('No AGENT_RULES.md found, proceeding without rules');
-      return '';
+  async loadRules(repoPath?: string): Promise<string> {
+    const targetRepoPath = repoPath ?? this.configService.get<string>('TARGET_REPO_PATH', '');
+
+    // Try AGENT_RULES.md first, then fall back to CLAUDE.md
+    for (const filename of ['AGENT_RULES.md', 'CLAUDE.md']) {
+      const rulesPath = path.join(targetRepoPath, filename);
+      this.logger.log(`[context] Trying rules from: ${rulesPath}`);
+      try {
+        const content = fs.readFileSync(rulesPath, 'utf-8');
+        this.logger.log(`[context] Loaded ${content.length} chars from ${filename}`);
+        return content;
+      } catch {
+        // Continue to next fallback
+      }
     }
+
+    this.logger.warn('No AGENT_RULES.md or CLAUDE.md found, proceeding without rules');
+    return '';
   }
 
   buildSystemPrompt(rules: string, stepPrompt: string): string {

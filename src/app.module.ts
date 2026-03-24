@@ -5,6 +5,8 @@ import { ToolsModule } from './tools/tools.module.js';
 import { ContextModule } from './context/context.module.js';
 import { AgentModule } from './agent/agent.module.js';
 import { BlueprintModule } from './blueprint/blueprint.module.js';
+import { EnrichmentModule } from './enrichment/enrichment.module.js';
+import { ShotsModule } from './shots/shots.module.js';
 import { SlackModule } from './slack/slack.module.js';
 
 @Module({
@@ -15,6 +17,8 @@ import { SlackModule } from './slack/slack.module.js';
     ContextModule,
     AgentModule,
     BlueprintModule,
+    EnrichmentModule,
+    ShotsModule,
     SlackModule,
   ],
 })

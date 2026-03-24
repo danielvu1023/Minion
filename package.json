@@ -29,7 +29,8 @@
     "dockerode": "^4.0.9",
     "dotenv": "^17.3.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "youtube-transcript-plus": "^1.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

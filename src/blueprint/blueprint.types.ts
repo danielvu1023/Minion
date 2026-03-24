@@ -15,4 +15,6 @@ export interface BlueprintRunRequest {
   prompt: string;
   channelId: string;
   threadTs: string;
+  blueprint?: Step[];
+  repoPath?: string;
 }
