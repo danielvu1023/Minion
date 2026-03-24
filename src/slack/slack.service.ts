@@ -4,7 +4,7 @@ import { App } from '@slack/bolt';
 import { BlueprintService } from '../blueprint/blueprint.service.js';
 import { ShotsPipelineService } from '../shots/shots-pipeline.service.js';
 
-const SHOTS_ADD_REGEX = /^shots\s+add\s+"([^"]+)"/;
+const SHOTS_ADD_REGEX = /^shots\s+add\s+["\u201C]([^"\u201D]+)["\u201D]/;
 
 @Injectable()
 export class SlackService implements OnModuleInit {
