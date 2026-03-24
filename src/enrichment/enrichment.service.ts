@@ -79,9 +79,31 @@ export class EnrichmentService {
   async getTranscript(videoId: string): Promise<string> {
     this.logger.log(`[enrichment] Fetching transcript for ${videoId}`);
 
-    // Dynamic import for ESM module
     const { YoutubeTranscript } = await import('youtube-transcript-plus');
-    const segments = await YoutubeTranscript.fetchTranscript(videoId);
+
+    const proxyUrl = this.configService.get<string>('PROXY_URL', '');
+    const config: Record<string, unknown> = {};
+
+    if (proxyUrl) {
+      this.logger.log(`[enrichment] Using residential proxy for transcript fetch`);
+      const { HttpsProxyAgent } = await import('https-proxy-agent');
+      const agent = new HttpsProxyAgent(proxyUrl);
+      const proxyFetch = async (params: { url: string; headers?: Record<string, string>; body?: string }) => {
+        const nodeFetch = (await import('node-fetch')).default;
+        const resp = await nodeFetch(params.url, {
+          method: params.body ? 'POST' : 'GET',
+          headers: params.headers,
+          body: params.body,
+          agent,
+        });
+        return resp as unknown as Response;
+      };
+      config.videoFetch = proxyFetch;
+      config.playerFetch = proxyFetch;
+      config.transcriptFetch = proxyFetch;
+    }
+
+    const segments = await YoutubeTranscript.fetchTranscript(videoId, config);
 
     const transcript = segments
       .map((s: { offset: number; text: string }) => `[${Math.round(s.offset / 1000)}s] ${s.text}`)
