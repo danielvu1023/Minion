@@ -111,6 +111,9 @@ export class ShellProvider implements IDevboxProvider {
   }
 
   async writeFile(filePath: string, content: string): Promise<string> {
+    if (!content && content !== '') {
+      return 'Error: no content provided to write_file';
+    }
     const fullPath = filePath.startsWith('/')
       ? filePath
       : path.join(this.workDir, filePath);
